@@ -5,17 +5,13 @@ from api.crud import create_user, get_user
 from api.auth import pwd_context
 import secrets
 from dotenv import load_dotenv
-from api.config import db
+from api.config import get_database
 from typing import Optional
 from bson import ObjectId
-import asyncio
-import concurrent.futures
-load_dotenv()
+
 from http import cookies
 app = FastAPI()
-loop = asyncio.get_event_loop()
-executor = concurrent.futures.ThreadPoolExecutor(5)
-loop.set_default_executor(executor)
+
 # Налаштування CORS
 app.add_middleware(
     CORSMiddleware,
@@ -26,6 +22,7 @@ app.add_middleware(
 )
 
 async def get_current_user(session_token: Optional[str] = Cookie(None)):
+    db = await get_database()
     if not session_token:
         return None
     user_session = await db.sessions.find_one({"session_token": session_token})
@@ -45,6 +42,7 @@ async def register(user: UserCreate):
 
 @app.post("/api/login")
 async def login(user: UserLogin, response: Response):
+    db = await get_database()
     db_user = await get_user(user.email)
     if not db_user or not pwd_context.verify(user.password, db_user["hashed_password"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -85,6 +83,7 @@ async def get_user_info(current_user: dict = Depends(get_current_user)):
 
 @app.get("/api/data")
 async def get_data(current_user: dict = Depends(get_current_user)):
+    db = await get_database()
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     data = await db.user_data.find({"user_email": current_user["email"]}).to_list(1000)
@@ -92,6 +91,7 @@ async def get_data(current_user: dict = Depends(get_current_user)):
 
 @app.post("/api/data")
 async def create_data(item: DataItemCreate, current_user: dict = Depends(get_current_user)):
+    db = await get_database()
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     new_item = item.dict()
@@ -102,6 +102,7 @@ async def create_data(item: DataItemCreate, current_user: dict = Depends(get_cur
 
 @app.put("/api/data/{item_id}")
 async def update_data(item_id: str, item: DataItemUpdate, current_user: dict = Depends(get_current_user)):
+    db = await get_database()
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     updated_item = await db.user_data.find_one_and_update(
@@ -115,6 +116,7 @@ async def update_data(item_id: str, item: DataItemUpdate, current_user: dict = D
 
 @app.delete("/api/data/{item_id}")
 async def delete_data(item_id: str, current_user: dict = Depends(get_current_user)):
+    db = await get_database()
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
     delete_result = await db.user_data.delete_one({"_id": ObjectId(item_id), "user_email": current_user["email"]})
