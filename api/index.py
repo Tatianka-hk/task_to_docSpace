@@ -8,12 +8,14 @@ from dotenv import load_dotenv
 from api.config import db
 from typing import Optional
 from bson import ObjectId
-
+import asyncio
+import concurrent.futures
 load_dotenv()
 from http import cookies
 app = FastAPI()
-origins = ['http://localhost:3000', 'http://127.0.0.1:3000',
-           'https://localhost:3000', 'https://127.0.0.1:3000'] 
+loop = asyncio.get_event_loop()
+executor = concurrent.futures.ThreadPoolExecutor(5)
+loop.set_default_executor(executor)
 # Налаштування CORS
 app.add_middleware(
     CORSMiddleware,
