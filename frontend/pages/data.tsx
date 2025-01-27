@@ -29,7 +29,7 @@ export default function Data() {
 
   const fetchData = async () => {
     try {
-      const response = await fetch("http://localhost:8000/api/data", {
+      const response = await fetch("/api/data", {
         credentials: "include",
       })
       if (response.ok) {
@@ -60,7 +60,7 @@ export default function Data() {
 
   const handleCreate = async (newItem: DataItemCreate) => {
     try {
-      const response = await fetch("http://localhost:8000/api/data", {
+      const response = await fetch("/api/data", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -83,7 +83,7 @@ export default function Data() {
 
   const handleUpdate = async (updatedItem: DataItem) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/data/${updatedItem.id}`, {
+      const response = await fetch(`/api/data/${updatedItem.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -106,7 +106,7 @@ export default function Data() {
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/data/${id}`, {
+      const response = await fetch(`/api/data/${id}`, {
         method: "DELETE",
         credentials: "include",
       })

@@ -13,7 +13,7 @@ export default function ResetPassword() {
     e.preventDefault();
 
     try {
-      const response = await fetch('http://localhost:8000/api/reset-password', {
+      const response = await fetch('/api/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
