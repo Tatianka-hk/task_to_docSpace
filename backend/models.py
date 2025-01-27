@@ -10,3 +10,15 @@ class UserLogin(BaseModel):
 
 class PasswordReset(BaseModel):
     email: EmailStr
+
+class DataItem(BaseModel):
+    name: str
+    category: str
+    value: float
+    date: str
+
+class DataItemCreate(DataItem):
+    pass
+
+class DataItemUpdate(DataItem):
+    pass

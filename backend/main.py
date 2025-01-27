@@ -1,12 +1,14 @@
 from fastapi import FastAPI, HTTPException,Depends, Response, Cookie
 from fastapi.middleware.cors import CORSMiddleware
-from models import UserCreate, UserLogin, PasswordReset
+from models import UserCreate, UserLogin, PasswordReset, DataItemCreate, DataItemUpdate, DataItem
 from crud import create_user, get_user
 from auth import pwd_context
 import secrets
 from dotenv import load_dotenv
 from config import db
 from typing import Optional
+from bson import ObjectId
+
 load_dotenv()
 from http import cookies
 app = FastAPI()
@@ -15,27 +17,24 @@ origins = ['http://localhost:3000', 'http://127.0.0.1:3000',
 # Налаштування CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 async def get_current_user(session_token: Optional[str] = Cookie(None)):
-    print(f"Cookie: {session_token}") 
     if not session_token:
         return None
-    print(f"Session Token: {session_token}")  # Логування для відлагодження
     user_session = await db.sessions.find_one({"session_token": session_token})
     if user_session:
         user = await db.users.find_one({"email": user_session["email"]})
-        return user  # Повертаємо саму інформацію про користувача, а не лише токен
+        return user  
     return None
 
 # Маршрути
 @app.post("/api/register")
 async def register(user: UserCreate):
-    print('register')
     existing_user = await get_user(user.email)
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -47,19 +46,16 @@ async def login(user: UserLogin, response: Response):
     db_user = await get_user(user.email)
     if not db_user or not pwd_context.verify(user.password, db_user["hashed_password"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
-    print("all are valid")
     session_token = secrets.token_urlsafe(32)
-    print(f"SS: {session_token} ")
     await db.sessions.insert_one({"email": user.email, "session_token": session_token})
     response.set_cookie(
         key="session_token",
         value=session_token,
         httponly=True,
-        secure=False,  # Set to True in production with HTTPS
+        secure=False, 
         samesite="lax",
-        max_age=3600  # 1 hour
+        max_age=3600  
     )
-    print(f"Session Token Set: {session_token}") 
     return {"status": "success", "message": "Login successful"}
 
 @app.post("/api/reset-password")
@@ -85,6 +81,44 @@ async def get_user_info(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=401, detail="Not authenticated")
     return {"status": "success", "user": current_user["email"]}
 
+@app.get("/api/data")
+async def get_data(current_user: dict = Depends(get_current_user)):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    data = await db.user_data.find({"user_email": current_user["email"]}).to_list(1000)
+    return [{"id": str(item["_id"]), **{k: v for k, v in item.items() if k != "_id" and k != "user_email"}} for item in data]
+
+@app.post("/api/data")
+async def create_data(item: DataItemCreate, current_user: dict = Depends(get_current_user)):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    new_item = item.dict()
+    new_item["user_email"] = current_user["email"]
+    result = await db.user_data.insert_one(new_item)
+    created_item = await db.user_data.find_one({"_id": result.inserted_id})
+    return {"id": str(created_item["_id"]), **{k: v for k, v in created_item.items() if k != "_id" and k != "user_email"}}
+
+@app.put("/api/data/{item_id}")
+async def update_data(item_id: str, item: DataItemUpdate, current_user: dict = Depends(get_current_user)):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    updated_item = await db.user_data.find_one_and_update(
+        {"_id": ObjectId(item_id), "user_email": current_user["email"]},
+        {"$set": item.dict()},
+        return_document=True
+    )
+    if updated_item:
+        return {"id": str(updated_item["_id"]), **{k: v for k, v in updated_item.items() if k != "_id" and k != "user_email"}}
+    raise HTTPException(status_code=404, detail="Item not found")
+
+@app.delete("/api/data/{item_id}")
+async def delete_data(item_id: str, current_user: dict = Depends(get_current_user)):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    delete_result = await db.user_data.delete_one({"_id": ObjectId(item_id), "user_email": current_user["email"]})
+    if delete_result.deleted_count:
+        return {"status": "success", "message": "Item deleted successfully"}
+    raise HTTPException(status_code=404, detail="Item not found")
 
 if __name__ == "__main__":
     import uvicorn
