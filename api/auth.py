@@ -1,5 +1,5 @@
 from passlib.context import CryptContext
-from config import db
+from api.config import db
 from fastapi import Cookie
 
 

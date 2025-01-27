@@ -1,11 +1,11 @@
 from fastapi import FastAPI, HTTPException,Depends, Response, Cookie
 from fastapi.middleware.cors import CORSMiddleware
-from models import UserCreate, UserLogin, PasswordReset, DataItemCreate, DataItemUpdate, DataItem
-from crud import create_user, get_user
-from auth import pwd_context
+from api.models import UserCreate, UserLogin, PasswordReset, DataItemCreate, DataItemUpdate, DataItem
+from api.crud import create_user, get_user
+from api.auth import pwd_context
 import secrets
 from dotenv import load_dotenv
-from config import db
+from api.config import db
 from typing import Optional
 from bson import ObjectId
 

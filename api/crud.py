@@ -1,5 +1,5 @@
-from models import UserCreate
-from config import db
+from api.models import UserCreate
+from api.config import db
 
 async def get_user(email: str):
     return await db.users.find_one({"email": email})
