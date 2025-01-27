@@ -1,4 +1,4 @@
-from models import UserCreate
+from api.models import UserCreate
 from api.config import get_database
 from api.auth import pwd_context
 async def get_user(email: str):
