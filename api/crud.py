@@ -2,7 +2,8 @@ from api.models import UserCreate
 from api.config import db
 
 async def get_user(email: str):
-    return await db.users.find_one({"email": email})
+    user = await db.users.find_one({"email": email})
+    return {"user":user}
 
 async def create_user(user: UserCreate):
     hashed_password = pwd_context.hash(user.password)
