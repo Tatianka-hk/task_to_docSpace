@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import Navigation from "../components/Navigation"
 import ProtectedRoute from "../components/ProtectedRoute"
 import dynamic from "next/dynamic"
-import type { DataItem } from "../types/data.ts"
+import type { DataItem } from "../types/data"
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false })
 
